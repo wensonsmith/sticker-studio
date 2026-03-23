@@ -11,15 +11,20 @@
                     "build:vinext":  "vinext build",
                     "start:vinext":  "vinext start",
                     "deploy":  "vinext deploy",
-                    "deploy:preview":  "vinext deploy --preview"
+                    "deploy:preview":  "vinext deploy --preview",
+                    "prepare:model-assets":  "node scripts/prepare-model-assets.mjs"
                 },
     "dependencies":  {
+                         "@imgly/background-removal-node":  "^1.4.5",
                          "next":  "16.2.0",
                          "react":  "19.2.4",
-                         "react-dom":  "19.2.4"
+                         "react-dom":  "19.2.4",
+                         "sharp":  "^0.34.5"
                      },
     "devDependencies":  {
+                            "@cloudflare/vite-plugin":  "^1.13.6",
                             "@tailwindcss/postcss":  "^4",
+                            "@tailwindcss/vite":  "^4",
                             "@types/node":  "^20",
                             "@types/react":  "^19",
                             "@types/react-dom":  "^19",
@@ -32,9 +37,7 @@
                             "typescript":  "^5",
                             "vinext":  "^0.0.31",
                             "vite":  "^8.0.1",
-                            "@cloudflare/vite-plugin":  "^1.13.6",
-                            "wrangler":  "^4.38.0",
-                            "@tailwindcss/vite":  "^4"
+                            "wrangler":  "^4.38.0"
                         },
     "type":  "module"
 }

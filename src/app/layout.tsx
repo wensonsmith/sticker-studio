@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Stickify",
-  description: "Stickify built with Next.js and vinext",
+  title: "Stickify Studio",
+  description: "Upload a product image or paste a URL to generate a sticker-style cutout with a clean white outline.",
 };
 
 export default function RootLayout({
@@ -27,7 +27,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full font-sans">{children}</body>
     </html>
   );
 }
