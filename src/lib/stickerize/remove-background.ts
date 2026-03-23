@@ -1,9 +1,10 @@
 import { removeBackground } from "@imgly/background-removal-node";
 import sharp from "sharp";
 import { getBackgroundRemovalConfig } from "@/lib/stickerize/config";
-import { unsupportedMediaType } from "@/lib/stickerize/errors";
+import { unprocessableEntity, unsupportedMediaType } from "@/lib/stickerize/errors";
 
 const MAX_SOURCE_EDGE = 1600;
+const NORMALIZED_IMAGE_MIME = "image/png";
 
 export async function normalizeSourceImage(input: Buffer) {
   try {
@@ -17,8 +18,29 @@ export async function normalizeSourceImage(input: Buffer) {
   }
 }
 
+function mapBackgroundRemovalError(error: unknown): never {
+  if (error instanceof Error) {
+    if (error.message.startsWith("Unsupported format:")) {
+      throw unsupportedMediaType("The image could not be decoded by the background removal engine.");
+    }
+
+    if (error.message.includes("Resource metadata not found") || error.message.includes("Resource /models/")) {
+      throw unprocessableEntity("The background removal model assets are unavailable or incomplete.");
+    }
+  }
+
+  throw error;
+}
+
 export async function removeImageBackground(input: Buffer) {
   const normalizedInput = await normalizeSourceImage(input);
-  const blob = await removeBackground(normalizedInput, getBackgroundRemovalConfig());
-  return Buffer.from(await blob.arrayBuffer());
+
+  try {
+    const normalizedBytes = Uint8Array.from(normalizedInput);
+    const normalizedBlob = new Blob([normalizedBytes], { type: NORMALIZED_IMAGE_MIME });
+    const result = await removeBackground(normalizedBlob, getBackgroundRemovalConfig());
+    return Buffer.from(await result.arrayBuffer());
+  } catch (error) {
+    mapBackgroundRemovalError(error);
+  }
 }
