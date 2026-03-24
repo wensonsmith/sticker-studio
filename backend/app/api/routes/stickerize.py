@@ -22,7 +22,7 @@ settings = get_settings()
 async def healthz() -> JSONResponse:
     model_dir = Path(settings.model_dir)
     segmenter = get_segmenter()
-    model_loaded = segmenter.session is not None and segmenter.processor is not None
+    model_loaded = segmenter.session is not None
 
     return JSONResponse(
         {

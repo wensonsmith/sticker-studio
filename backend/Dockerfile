@@ -13,7 +13,8 @@ RUN pip install --upgrade pip \
     && pip install -r backend/requirements.txt
 
 COPY backend ./backend
-ENV STICKIFY_MODEL_DIR=/app/backend/.cache/models/birefnet
+ENV STICKIFY_MODEL_DIR=/app/backend/.cache/models/u2netp
+ENV STICKIFY_MODEL_NAME=u2netp
 RUN python backend/scripts/download_model.py
 
 EXPOSE 8000
