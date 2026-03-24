@@ -30,6 +30,7 @@ async def healthz() -> JSONResponse:
             "version": settings.app_version,
             "checks": {
                 "modelName": settings.model_name,
+                "availableModels": ["u2netp", "isnet-general-use", "u2net"],
                 "modelDir": str(model_dir),
                 "modelDirExists": model_dir.exists(),
                 "modelLoaded": model_loaded,
@@ -55,7 +56,7 @@ async def stickerize(request: Request) -> Response:
 
     decoded = decode_image(source_bytes)
     normalized_image = resize_longest_edge(decoded.image, settings.max_source_edge)
-    mask = get_segmenter().predict_mask(normalized_image)
+    mask = get_segmenter(parsed.model_name).predict_mask(normalized_image)
     contour = prepare_primary_contour(mask.mask, parsed.mask_threshold, parsed.smoothness)
     sticker = compose_sticker(
         normalized_image,

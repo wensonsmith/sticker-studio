@@ -17,7 +17,13 @@ MODEL_DOWNLOADS = {
         "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx",
         "md5": "8e83ca70e441ab06c318d82300c84806",
     },
+    "isnet-general-use": {
+        "filename": "isnet-general-use.onnx",
+        "url": "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx",
+        "md5": "fc16ebd8b0c10d971d3513d564d01e29",
+    },
 }
+MODEL_ALIASES = {"isnet": "isnet-general-use"}
 
 
 def file_md5(path: Path) -> str:
@@ -40,7 +46,7 @@ def download_file(url: str, destination: Path) -> None:
 
 def main() -> None:
     settings = get_settings()
-    model_name = settings.model_name.strip().lower()
+    model_name = MODEL_ALIASES.get(settings.model_name.strip().lower(), settings.model_name.strip().lower())
     target_dir = Path(settings.model_dir)
 
     if model_name in MODEL_DOWNLOADS:

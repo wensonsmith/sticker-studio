@@ -5,6 +5,8 @@ from backend.app.core.errors import bad_request, payload_too_large, unsupported_
 
 ALLOWED_IMAGE_MIME_TYPES = {"image/png", "image/jpeg", "image/webp"}
 ALLOWED_OUTPUT_FORMATS = {"png", "webp"}
+MODEL_ALIASES = {"isnet": "isnet-general-use"}
+ALLOWED_MODELS = {"u2netp", "isnet-general-use", "u2net", *MODEL_ALIASES.keys()}
 MAX_OUTPUT_SIZE = 1024
 MIN_OUTPUT_SIZE = 256
 MAX_OUTLINE_PX = 48
@@ -16,6 +18,7 @@ class StickerizeInput:
     source_kind: str
     buffer: bytes | None
     image_url: str | None
+    model_name: str
     outline_px: int
     size: int
     output_format: str
@@ -33,12 +36,17 @@ def _parse_int(raw_value: object, field_name: str, default: int) -> int:
         raise bad_request(f"{field_name} must be an integer.") from error
 
 
-def _normalize_common_fields(payload: dict[str, object], settings: Settings) -> tuple[int, int, str, int, int]:
+def _normalize_common_fields(payload: dict[str, object], settings: Settings) -> tuple[str, int, int, str, int, int]:
+    model_name = str(payload.get("model") or settings.model_name).strip().lower()
+    model_name = MODEL_ALIASES.get(model_name, model_name)
     outline_px = _parse_int(payload.get("outlinePx"), "outlinePx", settings.default_outline_px)
     size = _parse_int(payload.get("size"), "size", settings.default_size)
     mask_threshold = _parse_int(payload.get("maskThreshold"), "maskThreshold", settings.default_mask_threshold)
     smoothness = _parse_int(payload.get("smoothness"), "smoothness", settings.default_smoothness)
     output_format = str(payload.get("format") or "png").strip().lower()
+
+    if model_name not in ALLOWED_MODELS:
+        raise bad_request(f"model must be one of: {', '.join(sorted(ALLOWED_MODELS))}.")
 
     if not 0 <= outline_px <= MAX_OUTLINE_PX:
         raise bad_request(f"outlinePx must be between 0 and {MAX_OUTLINE_PX}.")
@@ -55,7 +63,7 @@ def _normalize_common_fields(payload: dict[str, object], settings: Settings) -> 
     if not 0 <= smoothness <= MAX_SMOOTHNESS:
         raise bad_request(f"smoothness must be between 0 and {MAX_SMOOTHNESS}.")
 
-    return outline_px, size, output_format, mask_threshold, smoothness
+    return model_name, outline_px, size, output_format, mask_threshold, smoothness
 
 
 async def parse_request_input(request, settings: Settings) -> StickerizeInput:
@@ -70,8 +78,8 @@ async def parse_request_input(request, settings: Settings) -> StickerizeInput:
         if getattr(file_entry, "content_type", None) not in ALLOWED_IMAGE_MIME_TYPES:
             raise unsupported_media_type("Only PNG, JPEG, and WebP uploads are supported.")
 
-        payload = {key: form.get(key) for key in ("outlinePx", "size", "format", "maskThreshold", "smoothness")}
-        outline_px, size, output_format, mask_threshold, smoothness = _normalize_common_fields(payload, settings)
+        payload = {key: form.get(key) for key in ("model", "outlinePx", "size", "format", "maskThreshold", "smoothness")}
+        model_name, outline_px, size, output_format, mask_threshold, smoothness = _normalize_common_fields(payload, settings)
 
         buffer = await file_entry.read()
         if len(buffer) > settings.max_image_bytes:
@@ -81,6 +89,7 @@ async def parse_request_input(request, settings: Settings) -> StickerizeInput:
             source_kind="upload",
             buffer=buffer,
             image_url=None,
+            model_name=model_name,
             outline_px=outline_px,
             size=size,
             output_format=output_format,
@@ -97,11 +106,12 @@ async def parse_request_input(request, settings: Settings) -> StickerizeInput:
         if not image_url:
             raise bad_request("imageUrl is required for JSON requests.")
 
-        outline_px, size, output_format, mask_threshold, smoothness = _normalize_common_fields(payload, settings)
+        model_name, outline_px, size, output_format, mask_threshold, smoothness = _normalize_common_fields(payload, settings)
         return StickerizeInput(
             source_kind="url",
             buffer=None,
             image_url=image_url,
+            model_name=model_name,
             outline_px=outline_px,
             size=size,
             output_format=output_format,

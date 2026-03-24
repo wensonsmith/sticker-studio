@@ -7,6 +7,7 @@ import { useEffect, useState, useTransition } from "react";
 
 type SourceMode = "upload" | "url";
 type OutputFormat = "png" | "webp";
+type SegmentationModel = "u2netp" | "isnet-general-use";
 
 type ResultState = {
   url: string;
@@ -19,13 +20,17 @@ const OUTPUT_SIZE_OPTIONS = [256, 512, 768, 1024] as const;
 const OUTLINE_OPTIONS = [0, 6, 10, 14, 18, 24] as const;
 const MASK_THRESHOLD_OPTIONS = [96, 112, 128, 144, 160] as const;
 const SMOOTHNESS_OPTIONS = [0, 1, 2, 3, 4] as const;
+const MODEL_OPTIONS = [
+  { value: "u2netp", label: "U2NetP (Fast)" },
+  { value: "isnet-general-use", label: "ISNet (Cleaner)" },
+] as const satisfies ReadonlyArray<{ value: SegmentationModel; label: string }>;
 
-function createCurlExample(format: OutputFormat, maskThreshold: number, smoothness: number) {
+function createCurlExample(model: SegmentationModel, format: OutputFormat, maskThreshold: number, smoothness: number) {
   const extension = format === "webp" ? "webp" : "png";
   return [
     `curl -X POST "${API_BASE_URL}/v1/stickerize" \\`,
     '  -H "Content-Type: application/json" \\',
-    `  -d '{"imageUrl":"https://example.com/product.jpg","outlinePx":10,"size":512,"format":"${format}","maskThreshold":${maskThreshold},"smoothness":${smoothness}}' \\`,
+    `  -d '{"imageUrl":"https://example.com/product.jpg","model":"${model}","outlinePx":10,"size":512,"format":"${format}","maskThreshold":${maskThreshold},"smoothness":${smoothness}}' \\`,
     `  --output sticker.${extension}`,
   ].join("\n");
 }
@@ -34,6 +39,7 @@ export function StickerStudio() {
   const [mode, setMode] = useState<SourceMode>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
+  const [model, setModel] = useState<SegmentationModel>("u2netp");
   const [outlinePx, setOutlinePx] = useState(10);
   const [size, setSize] = useState(512);
   const [format, setFormat] = useState<OutputFormat>("png");
@@ -113,6 +119,7 @@ export function StickerStudio() {
 
           const formData = new FormData();
           formData.set("file", file);
+          formData.set("model", model);
           formData.set("outlinePx", String(outlinePx));
           formData.set("size", String(size));
           formData.set("format", format);
@@ -135,6 +142,7 @@ export function StickerStudio() {
             },
             body: JSON.stringify({
               imageUrl: imageUrl.trim(),
+              model,
               outlinePx,
               size,
               format,
@@ -201,7 +209,7 @@ export function StickerStudio() {
                 </div>
               </div>
               <p className="text-sm leading-6 text-[var(--ink-muted)]">
-                Public browser requests go straight to the FastAPI service. Tune threshold and smoothing if the main object needs a sharper or softer contour.
+                Public browser requests go straight to the FastAPI service. Start with U2NetP for speed, then try ISNet if you want a cleaner primary contour.
               </p>
             </div>
           </div>
@@ -258,7 +266,22 @@ export function StickerStudio() {
                   </label>
                 )}
 
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <label className="grid gap-2 text-sm text-[var(--ink-muted)]">
+                    <span className="text-xs font-semibold uppercase tracking-[0.2em]">Model</span>
+                    <select
+                      className="rounded-[1rem] border border-[var(--line-soft)] bg-white px-3 py-3 text-[var(--ink-strong)]"
+                      value={model}
+                      onChange={(event) => setModel(event.target.value as SegmentationModel)}
+                    >
+                      {MODEL_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
                   <label className="grid gap-2 text-sm text-[var(--ink-muted)]">
                     <span className="text-xs font-semibold uppercase tracking-[0.2em]">Outline</span>
                     <select
@@ -405,7 +428,7 @@ export function StickerStudio() {
             <div className="rounded-[2rem] border border-white/50 bg-white/75 p-6 shadow-[0_30px_80px_rgba(15,23,42,0.1)] backdrop-blur lg:p-8">
               <div className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--ink-muted)]">API example</div>
               <pre className="mt-4 overflow-x-auto rounded-[1.2rem] bg-[var(--ink-strong)] p-4 text-sm leading-7 text-slate-100">
-                <code>{createCurlExample(format, maskThreshold, smoothness)}</code>
+                <code>{createCurlExample(model, format, maskThreshold, smoothness)}</code>
               </pre>
             </div>
           </section>

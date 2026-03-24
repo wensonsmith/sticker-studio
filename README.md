@@ -10,6 +10,7 @@ Stickify Studio now uses a split architecture:
 - Next.js is now UI-only and no longer serves `/api/stickerize`.
 - FastAPI serves `POST /v1/stickerize` and `GET /healthz`.
 - The default backend segmentation engine is now `u2netp`, a lightweight U2Net-family ONNX model tuned for quicker CPU contour extraction.
+- The API can also switch to `isnet-general-use` per request when you want a cleaner primary contour.
 
 ## Local frontend development
 
@@ -53,6 +54,7 @@ Accepts either `multipart/form-data` or `application/json`.
 Multipart fields:
 
 - `file`
+- `model`
 - `outlinePx`
 - `size`
 - `format`
@@ -64,6 +66,7 @@ JSON body:
 ```json
 {
   "imageUrl": "https://example.com/product.jpg",
+  "model": "isnet-general-use",
   "outlinePx": 10,
   "size": 512,
   "format": "png",
@@ -77,7 +80,7 @@ Example:
 ```bash
 curl -X POST "http://localhost:8000/v1/stickerize" \
   -H "Content-Type: application/json" \
-  -d '{"imageUrl":"https://example.com/product.jpg","outlinePx":10,"size":512,"format":"png","maskThreshold":128,"smoothness":2}' \
+  -d '{"imageUrl":"https://example.com/product.jpg","model":"isnet-general-use","outlinePx":10,"size":512,"format":"png","maskThreshold":128,"smoothness":2}' \
   --output sticker.png
 ```
 

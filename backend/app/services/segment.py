@@ -13,6 +13,8 @@ from backend.app.core.config import Settings, get_settings
 from backend.app.core.errors import unprocessable_entity
 
 U2NET_MODELS = {"u2net", "u2netp"}
+ISNET_MODELS = {"isnet-general-use"}
+MODEL_ALIASES = {"isnet": "isnet-general-use"}
 
 
 @dataclass(slots=True)
@@ -23,9 +25,10 @@ class SegmentResult:
 
 
 class BaseSegmenter:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, model_name: str, model_dir: Path) -> None:
         self.settings = settings
-        self.model_dir = Path(settings.model_dir)
+        self.model_name = model_name
+        self.model_dir = model_dir
         self.session = None
 
     def _find_onnx_path(self) -> Path:
@@ -53,8 +56,8 @@ class BaseSegmenter:
 
 
 class BiRefNetSegmenter(BaseSegmenter):
-    def __init__(self, settings: Settings) -> None:
-        super().__init__(settings)
+    def __init__(self, settings: Settings, model_name: str, model_dir: Path) -> None:
+        super().__init__(settings, model_name, model_dir)
         self.processor = None
         self.input_name = None
         self.output_name = None
@@ -116,8 +119,8 @@ class U2NetSegmenter(BaseSegmenter):
     MEAN = (0.485, 0.456, 0.406)
     STD = (0.229, 0.224, 0.225)
 
-    def __init__(self, settings: Settings) -> None:
-        super().__init__(settings)
+    def __init__(self, settings: Settings, model_name: str, model_dir: Path) -> None:
+        super().__init__(settings, model_name, model_dir)
         self.input_name = None
 
     def load(self) -> None:
@@ -165,9 +168,27 @@ class U2NetSegmenter(BaseSegmenter):
         return SegmentResult(mask=np.array(mask_image, dtype=np.uint8), width=rgba_image.width, height=rgba_image.height)
 
 
-@lru_cache(maxsize=1)
-def get_segmenter() -> BaseSegmenter:
+class IsNetSegmenter(U2NetSegmenter):
+    INPUT_SIZE = (1024, 1024)
+    MEAN = (0.5, 0.5, 0.5)
+    STD = (1.0, 1.0, 1.0)
+
+
+def resolve_model_dir(settings: Settings, model_name: str) -> Path:
+    normalized_name = MODEL_ALIASES.get(model_name.strip().lower(), model_name.strip().lower())
+    if normalized_name == settings.model_name.strip().lower():
+        return Path(settings.model_dir)
+    return Path(settings.model_dir).parent / normalized_name
+
+
+@lru_cache(maxsize=4)
+def get_segmenter(model_name: str | None = None) -> BaseSegmenter:
     settings = get_settings()
-    if settings.model_name.strip().lower() in U2NET_MODELS:
-        return U2NetSegmenter(settings)
-    return BiRefNetSegmenter(settings)
+    resolved_name = MODEL_ALIASES.get((model_name or settings.model_name).strip().lower(), (model_name or settings.model_name).strip().lower())
+    model_dir = resolve_model_dir(settings, resolved_name)
+
+    if resolved_name in U2NET_MODELS:
+        return U2NetSegmenter(settings, resolved_name, model_dir)
+    if resolved_name in ISNET_MODELS:
+        return IsNetSegmenter(settings, resolved_name, model_dir)
+    return BiRefNetSegmenter(settings, resolved_name, model_dir)
