@@ -14,16 +14,18 @@ type ResultState = {
   mimeType: string;
 } | null;
 
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 const OUTPUT_SIZE_OPTIONS = [256, 512, 768, 1024] as const;
 const OUTLINE_OPTIONS = [0, 6, 10, 14, 18, 24] as const;
+const MASK_THRESHOLD_OPTIONS = [96, 112, 128, 144, 160] as const;
+const SMOOTHNESS_OPTIONS = [0, 1, 2, 3, 4] as const;
 
-function createCurlExample(format: OutputFormat) {
+function createCurlExample(format: OutputFormat, maskThreshold: number, smoothness: number) {
   const extension = format === "webp" ? "webp" : "png";
   return [
-    `curl -X POST "$YOUR_APP_URL/api/stickerize" \\`,
-    `  -H "x-api-key: $STICKIFY_API_KEY" \\`,
-    `  -H "Content-Type: application/json" \\`,
-    `  -d '{"imageUrl":"https://example.com/product.jpg","outlinePx":10,"size":512,"format":"${format}"}' \\`,
+    `curl -X POST "${API_BASE_URL}/v1/stickerize" \\`,
+    '  -H "Content-Type: application/json" \\',
+    `  -d '{"imageUrl":"https://example.com/product.jpg","outlinePx":10,"size":512,"format":"${format}","maskThreshold":${maskThreshold},"smoothness":${smoothness}}' \\`,
     `  --output sticker.${extension}`,
   ].join("\n");
 }
@@ -32,17 +34,23 @@ export function StickerStudio() {
   const [mode, setMode] = useState<SourceMode>("upload");
   const [file, setFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
-  const [apiKey, setApiKey] = useState("");
   const [outlinePx, setOutlinePx] = useState(10);
   const [size, setSize] = useState(512);
   const [format, setFormat] = useState<OutputFormat>("png");
+  const [maskThreshold, setMaskThreshold] = useState(128);
+  const [smoothness, setSmoothness] = useState(2);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ResultState>(null);
   const [sourcePreview, setSourcePreview] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (mode !== "upload" || !file) {
+    if (mode !== "upload") {
+      return;
+    }
+
+    if (!file) {
+      setSourcePreview(null);
       return;
     }
 
@@ -108,10 +116,11 @@ export function StickerStudio() {
           formData.set("outlinePx", String(outlinePx));
           formData.set("size", String(size));
           formData.set("format", format);
+          formData.set("maskThreshold", String(maskThreshold));
+          formData.set("smoothness", String(smoothness));
 
-          response = await fetch("/api/stickerize", {
+          response = await fetch(`${API_BASE_URL}/v1/stickerize`, {
             method: "POST",
-            headers: apiKey.trim() ? { "x-api-key": apiKey.trim() } : undefined,
             body: formData,
           });
         } else {
@@ -119,17 +128,18 @@ export function StickerStudio() {
             throw new Error("Paste an https image URL before generating a sticker.");
           }
 
-          response = await fetch("/api/stickerize", {
+          response = await fetch(`${API_BASE_URL}/v1/stickerize`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              ...(apiKey.trim() ? { "x-api-key": apiKey.trim() } : {}),
             },
             body: JSON.stringify({
               imageUrl: imageUrl.trim(),
               outlinePx,
               size,
               format,
+              maskThreshold,
+              smoothness,
             }),
           });
         }
@@ -157,17 +167,17 @@ export function StickerStudio() {
   return (
     <div className="min-h-screen bg-[var(--page-bg)] text-[var(--ink-strong)]">
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-10 px-5 py-6 sm:px-8 lg:px-10">
-        <header className="grid gap-6 rounded-[2rem] border border-white/50 bg-white/70 p-6 shadow-[0_30px_80px_rgba(15,23,42,0.12)] backdrop-blur lg:grid-cols-[1.3fr_0.9fr] lg:p-8">
+        <header className="grid gap-6 rounded-[2rem] border border-white/50 bg-white/70 p-6 shadow-[0_30px_80px_rgba(15,23,42,0.12)] backdrop-blur lg:grid-cols-[1.25fr_0.95fr] lg:p-8">
           <div className="space-y-6">
             <div className="inline-flex items-center rounded-full border border-[var(--line-soft)] bg-[var(--paper)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--ink-muted)]">
               Stickify Studio
             </div>
             <div className="space-y-4">
               <h1 className="max-w-3xl text-balance font-sans text-4xl font-semibold leading-[0.95] sm:text-5xl lg:text-6xl">
-                Cut the object, add a crisp white stroke, ship a sticker-ready PNG.
+                Find the object contour first, then turn it into a clean sticker.
               </h1>
               <p className="max-w-2xl text-pretty text-base leading-7 text-[var(--ink-muted)] sm:text-lg">
-                Upload a product shot or paste a public https image URL. The same Next.js app renders the page, protects the API, removes the background, and returns a transparent sticker image.
+                The Next.js interface stays lightweight while the FastAPI backend handles remote fetch safety, contour extraction, smoothing, and transparent sticker export.
               </p>
             </div>
           </div>
@@ -175,13 +185,13 @@ export function StickerStudio() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.65),transparent_42%),linear-gradient(135deg,rgba(255,255,255,0.85),rgba(255,255,255,0.45))]" />
             <div className="relative grid gap-4">
               <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.24em] text-[var(--ink-muted)]">
-                <span>Single route</span>
-                <span>/api/stickerize</span>
+                <span>Contour API</span>
+                <span>/v1/stickerize</span>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-[1.4rem] border border-dashed border-[var(--line-soft)] bg-[var(--paper)]/70 p-4">
                   <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ink-muted)]">Input</div>
-                  <div className="mt-4 aspect-square rounded-[1.2rem] bg-[linear-gradient(145deg,#fed7aa,#fb7185_44%,#f4f4f5)]" />
+                  <div className="mt-4 aspect-square rounded-[1.2rem] bg-[linear-gradient(145deg,#fcd34d,#fb7185_44%,#e2e8f0)]" />
                 </div>
                 <div className="rounded-[1.4rem] border border-[var(--line-soft)] bg-white/90 p-4 shadow-[0_16px_30px_rgba(251,113,133,0.12)]">
                   <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ink-muted)]">Sticker</div>
@@ -191,7 +201,7 @@ export function StickerStudio() {
                 </div>
               </div>
               <p className="text-sm leading-6 text-[var(--ink-muted)]">
-                Same-origin browser requests work from this page without exposing your API key. External callers can pass <code>x-api-key</code> for server-to-server usage.
+                Public browser requests go straight to the FastAPI service. Tune threshold and smoothing if the main object needs a sharper or softer contour.
               </p>
             </div>
           </div>
@@ -244,7 +254,7 @@ export function StickerStudio() {
                         resetResult();
                       }}
                     />
-                    <span className="text-sm text-[var(--ink-muted)]">Only public https URLs are accepted. Localhost and private networks are blocked.</span>
+                    <span className="text-sm text-[var(--ink-muted)]">Only public https URLs are accepted. Localhost and private networks are blocked by the API.</span>
                   </label>
                 )}
 
@@ -292,16 +302,37 @@ export function StickerStudio() {
                   </label>
                 </div>
 
-                <label className="grid gap-2 text-sm text-[var(--ink-muted)]">
-                  <span className="text-xs font-semibold uppercase tracking-[0.2em]">Optional API key</span>
-                  <input
-                    className="rounded-[1.1rem] border border-[var(--line-soft)] bg-white px-4 py-3 text-sm text-[var(--ink-strong)] outline-none transition focus:border-[var(--ink-strong)]/30"
-                    placeholder="Leave empty for same-origin browser requests"
-                    type="password"
-                    value={apiKey}
-                    onChange={(event) => setApiKey(event.target.value)}
-                  />
-                </label>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="grid gap-2 text-sm text-[var(--ink-muted)]">
+                    <span className="text-xs font-semibold uppercase tracking-[0.2em]">Mask threshold</span>
+                    <select
+                      className="rounded-[1rem] border border-[var(--line-soft)] bg-white px-3 py-3 text-[var(--ink-strong)]"
+                      value={maskThreshold}
+                      onChange={(event) => setMaskThreshold(Number.parseInt(event.target.value, 10))}
+                    >
+                      {MASK_THRESHOLD_OPTIONS.map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="grid gap-2 text-sm text-[var(--ink-muted)]">
+                    <span className="text-xs font-semibold uppercase tracking-[0.2em]">Contour smoothing</span>
+                    <select
+                      className="rounded-[1rem] border border-[var(--line-soft)] bg-white px-3 py-3 text-[var(--ink-strong)]"
+                      value={smoothness}
+                      onChange={(event) => setSmoothness(Number.parseInt(event.target.value, 10))}
+                    >
+                      {SMOOTHNESS_OPTIONS.map((value) => (
+                        <option key={value} value={value}>
+                          {value === 0 ? "Sharper" : value === 2 ? "Balanced" : value >= 4 ? "Softest" : `Level ${value}`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-4">
@@ -313,7 +344,7 @@ export function StickerStudio() {
                   {isPending ? "Generating sticker..." : "Generate sticker"}
                 </button>
                 <p className="text-sm text-[var(--ink-muted)]">
-                  The API returns the binary image directly and keeps responses uncached.
+                  Requests are sent directly to <code>{API_BASE_URL}</code>.
                 </p>
               </div>
 
@@ -363,7 +394,7 @@ export function StickerStudio() {
                       <img alt="Generated sticker" className="h-full w-full object-contain" src={result.url} />
                     ) : (
                       <p className="max-w-[14rem] text-center text-sm leading-6 text-[var(--ink-muted)]">
-                        Your sticker will appear here with a transparent background and white outline.
+                        Your sticker will appear here after the FastAPI backend isolates the main contour and applies the white outline.
                       </p>
                     )}
                   </div>
@@ -374,7 +405,7 @@ export function StickerStudio() {
             <div className="rounded-[2rem] border border-white/50 bg-white/75 p-6 shadow-[0_30px_80px_rgba(15,23,42,0.1)] backdrop-blur lg:p-8">
               <div className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--ink-muted)]">API example</div>
               <pre className="mt-4 overflow-x-auto rounded-[1.2rem] bg-[var(--ink-strong)] p-4 text-sm leading-7 text-slate-100">
-                <code>{createCurlExample(format)}</code>
+                <code>{createCurlExample(format, maskThreshold, smoothness)}</code>
               </pre>
             </div>
           </section>

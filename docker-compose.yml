@@ -1,0 +1,25 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      STICKIFY_MAX_IMAGE_BYTES: ${STICKIFY_MAX_IMAGE_BYTES:-10000000}
+      STICKIFY_FETCH_TIMEOUT_MS: ${STICKIFY_FETCH_TIMEOUT_MS:-10000}
+      STICKIFY_MODEL_DIR: ${STICKIFY_MODEL_DIR:-/app/backend/.cache/models/birefnet}
+      STICKIFY_MODEL_NAME: ${STICKIFY_MODEL_NAME:-onnx-community/BiRefNet-ONNX}
+      STICKIFY_RATE_LIMIT_PER_MINUTE: ${STICKIFY_RATE_LIMIT_PER_MINUTE:-30}
+      STICKIFY_CORS_ORIGINS: ${STICKIFY_CORS_ORIGINS:-*}
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000}
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"

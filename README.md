@@ -1,51 +1,65 @@
 # Stickify Studio
 
-Stickify Studio is a Next.js App Router app that turns product images into sticker-style cutouts with a clean white outline.
+Stickify Studio now uses a split architecture:
 
-## What it does
+- `frontend`: a Next.js App Router interface for uploads, previews, and downloads
+- `api`: a FastAPI service that fetches remote images safely, extracts the primary object contour, and returns a sticker image
 
-- Upload a PNG, JPEG, or WebP image from the browser.
-- Or send a public `https` image URL to the same API.
-- Remove the background with `@imgly/background-removal-node`.
-- Add an optional white outline and return a transparent PNG or WebP sticker.
+## What changed
 
-## Local development
+- Next.js is now UI-only and no longer serves `/api/stickerize`.
+- FastAPI serves `POST /v1/stickerize` and `GET /healthz`.
+- The default backend segmentation engine is `BiRefNet_lite-ONNX`, tuned for single-object contour extraction rather than matte-style background removal.
 
-Install dependencies and start the Next.js dev server:
+## Local frontend development
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+The UI expects the API to be reachable at `NEXT_PUBLIC_API_BASE_URL`.
+
+## Local backend development
+
+Use Python 3.13 or 3.11 for the FastAPI service. In this workspace, `uv` with Python 3.13 is the quickest path on Windows.
+
+```bash
+$env:UV_CACHE_DIR="D:\Administrator\Documents\Stickify\.uv-cache"
+$env:HF_ENDPOINT="https://hf-mirror.com"
+uv venv .venv --python 3.13
+uv pip install --python .venv\Scripts\python.exe -r backend\requirements.txt
+uv run --python .venv\Scripts\python.exe python -m backend.scripts.download_model
+uv run --python .venv\Scripts\python.exe uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+The default profile now uses `onnx-community/BiRefNet_lite-ONNX` and a smaller input edge to keep CPU latency reasonable.
 
 ## Environment variables
 
-Create `.env.local` from `.env.example` and set at least:
+Copy `.env.example` and configure:
 
-```bash
-STICKIFY_API_KEY=change-me
-```
-
-Optional knobs:
-
-- `STICKIFY_MAX_IMAGE_BYTES`: Maximum upload or fetched image size. Default `10000000`.
-- `STICKIFY_FETCH_TIMEOUT_MS`: Timeout for remote image fetches. Default `10000`.
-- `STICKIFY_MODEL_DIR`: Local directory for background-removal model assets. Default `.model-assets/background-removal`.
+- `NEXT_PUBLIC_API_BASE_URL`: Browser-visible FastAPI base URL. Default `http://localhost:8000`.
+- `STICKIFY_MAX_IMAGE_BYTES`: Maximum upload or fetched image size.
+- `STICKIFY_FETCH_TIMEOUT_MS`: Remote image fetch timeout.
+- `STICKIFY_MODEL_DIR`: Local directory containing the downloaded segmentation model.
+- `STICKIFY_MODEL_NAME`: Hugging Face model repo to download. Default `onnx-community/BiRefNet_lite-ONNX`.
+- `STICKIFY_RATE_LIMIT_PER_MINUTE`: Public API rate limit bucket size.
 
 ## API
 
-### `POST /api/stickerize`
+### `POST /v1/stickerize`
 
 Accepts either `multipart/form-data` or `application/json`.
 
 Multipart fields:
 
-- `file`: uploaded image
-- `outlinePx`: optional, default `10`
-- `size`: optional, default `512`
-- `format`: optional, `png` or `webp`
+- `file`
+- `outlinePx`
+- `size`
+- `format`
+- `maskThreshold`
+- `smoothness`
 
 JSON body:
 
@@ -54,48 +68,36 @@ JSON body:
   "imageUrl": "https://example.com/product.jpg",
   "outlinePx": 10,
   "size": 512,
-  "format": "png"
+  "format": "png",
+  "maskThreshold": 128,
+  "smoothness": 2
 }
 ```
-
-Authentication:
-
-- External callers should send `x-api-key`.
-- The built-in same-origin page can call the route without exposing the key in the browser.
 
 Example:
 
 ```bash
-curl -X POST "http://localhost:3000/api/stickerize" \
-  -H "x-api-key: $STICKIFY_API_KEY" \
+curl -X POST "http://localhost:8000/v1/stickerize" \
   -H "Content-Type: application/json" \
-  -d '{"imageUrl":"https://example.com/product.jpg","outlinePx":10,"size":512,"format":"png"}' \
+  -d '{"imageUrl":"https://example.com/product.jpg","outlinePx":10,"size":512,"format":"png","maskThreshold":128,"smoothness":2}' \
   --output sticker.png
 ```
 
-### `GET /api/healthz`
+### `GET /healthz`
 
-Returns a lightweight health payload without running inference.
+Returns a lightweight readiness payload for the FastAPI service.
 
-## Model assets
+## Docker Compose
 
-The Node package ships the wasm and ONNX resources in `node_modules`, but Docker prepares a local copy in `.model-assets/background-removal` so production startup does not depend on a network fetch.
+This machine does not currently have Docker installed, so compose files were added but not executed here.
 
-You can prepare that directory manually with:
-
-```bash
-npm run prepare:model-assets
-```
-
-## Docker
-
-Build and run:
+When Docker is available:
 
 ```bash
-docker build -t stickify .
-docker run --rm -p 3000:3000 \
-  -e STICKIFY_API_KEY=change-me \
-  stickify
+docker compose up --build
 ```
 
-Then open [http://localhost:3000](http://localhost:3000).
+Then open:
+
+- Frontend: [http://localhost:3000](http://localhost:3000)
+- API health check: [http://localhost:8000/healthz](http://localhost:8000/healthz)
