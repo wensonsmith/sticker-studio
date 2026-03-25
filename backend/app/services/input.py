@@ -6,7 +6,7 @@ from backend.app.core.errors import bad_request, payload_too_large, unsupported_
 ALLOWED_IMAGE_MIME_TYPES = {"image/png", "image/jpeg", "image/webp"}
 ALLOWED_OUTPUT_FORMATS = {"png", "webp"}
 MODEL_ALIASES = {"isnet": "isnet-general-use"}
-ALLOWED_MODELS = {"u2netp", "isnet-general-use", "u2net", *MODEL_ALIASES.keys()}
+ALLOWED_MODELS = {"u2netp", "isnet-general-use", "u2net", "birefnet-lite", *MODEL_ALIASES.keys()}
 MAX_OUTPUT_SIZE = 1024
 MIN_OUTPUT_SIZE = 256
 MAX_OUTLINE_PX = 48

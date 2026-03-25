@@ -14,7 +14,7 @@ from backend.app.core.errors import unprocessable_entity
 
 U2NET_MODELS = {"u2net", "u2netp"}
 ISNET_MODELS = {"isnet-general-use"}
-MODEL_ALIASES = {"isnet": "isnet-general-use"}
+MODEL_ALIASES = {"isnet": "isnet-general-use", "birefnet_lite": "birefnet-lite"}
 
 
 @dataclass(slots=True)

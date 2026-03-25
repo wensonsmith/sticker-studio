@@ -7,7 +7,7 @@ import { useEffect, useState, useTransition } from "react";
 
 type SourceMode = "upload" | "url";
 type OutputFormat = "png" | "webp";
-type SegmentationModel = "u2netp" | "isnet-general-use";
+type SegmentationModel = "u2netp" | "isnet-general-use" | "birefnet-lite";
 type ResultState = {
   url: string;
   filename: string;
@@ -25,6 +25,7 @@ const SMOOTHNESS_OPTIONS = [0, 1, 2, 3, 4] as const;
 const MODEL_OPTIONS = [
   { value: "u2netp", label: "U2NetP (Fast)" },
   { value: "isnet-general-use", label: "ISNet (Cleaner)" },
+  { value: "birefnet-lite", label: "BiRefNet Lite (Balanced)" },
 ] as const satisfies ReadonlyArray<{ value: SegmentationModel; label: string }>;
 function createCurlExample(
   model: SegmentationModel,

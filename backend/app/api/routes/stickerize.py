@@ -30,7 +30,7 @@ async def healthz() -> JSONResponse:
             "version": settings.app_version,
             "checks": {
                 "modelName": settings.model_name,
-                "availableModels": ["u2netp", "isnet-general-use", "u2net"],
+                "availableModels": ["u2netp", "isnet-general-use", "u2net", "birefnet-lite"],
                 "modelDir": str(model_dir),
                 "modelDirExists": model_dir.exists(),
                 "modelLoaded": model_loaded,

@@ -23,7 +23,11 @@ MODEL_DOWNLOADS = {
         "md5": "fc16ebd8b0c10d971d3513d564d01e29",
     },
 }
-MODEL_ALIASES = {"isnet": "isnet-general-use"}
+MODEL_ALIASES = {"isnet": "isnet-general-use", "birefnet_lite": "birefnet-lite"}
+# HuggingFace repos for models not in MODEL_DOWNLOADS
+HUGGINGFACE_REPOS = {
+    "birefnet-lite": "ZhengPeng7/BiRefNet_lite",
+}
 
 
 def file_md5(path: Path) -> str:
@@ -65,12 +69,14 @@ def main() -> None:
         print(f"Downloaded {model_name} into {destination}")
         return
 
+    # Handle HuggingFace models
+    repo_id = HUGGINGFACE_REPOS.get(model_name, settings.model_name.strip())
     snapshot_download(
-        repo_id=settings.model_name.strip(),
+        repo_id=repo_id,
         local_dir=target_dir,
         local_dir_use_symlinks=False,
     )
-    print(f"Downloaded {settings.model_name.strip()} into {target_dir}")
+    print(f"Downloaded {repo_id} into {target_dir}")
 
 
 if __name__ == "__main__":
