@@ -8,13 +8,6 @@ import { useEffect, useState, useTransition } from "react";
 type SourceMode = "upload" | "url";
 type OutputFormat = "png" | "webp";
 type SegmentationModel = "u2netp" | "isnet-general-use";
-type ContourPreset =
-  | "retain-detail"
-  | "balanced"
-  | "cleaner"
-  | "soft-sticker"
-  | "custom";
-
 type ResultState = {
   url: string;
   filename: string;
@@ -33,57 +26,6 @@ const MODEL_OPTIONS = [
   { value: "u2netp", label: "U2NetP (Fast)" },
   { value: "isnet-general-use", label: "ISNet (Cleaner)" },
 ] as const satisfies ReadonlyArray<{ value: SegmentationModel; label: string }>;
-const CONTOUR_PRESETS = [
-  {
-    value: "retain-detail",
-    label: "Retain Detail",
-    description:
-      "Keeps thin parts and edges. Use when the object is getting cut off.",
-    maskThreshold: 112,
-    smoothness: 1,
-  },
-  {
-    value: "balanced",
-    label: "Balanced",
-    description: "Default profile for most product shots.",
-    maskThreshold: 128,
-    smoothness: 2,
-  },
-  {
-    value: "cleaner",
-    label: "Cleaner",
-    description:
-      "Rejects more weak foreground. Use when shadows or background leak in.",
-    maskThreshold: 144,
-    smoothness: 2,
-  },
-  {
-    value: "soft-sticker",
-    label: "Soft Sticker",
-    description:
-      "Rounds the contour more aggressively for a smoother sticker edge.",
-    maskThreshold: 128,
-    smoothness: 3,
-  },
-] as const satisfies ReadonlyArray<{
-  value: Exclude<ContourPreset, "custom">;
-  label: string;
-  description: string;
-  maskThreshold: number;
-  smoothness: number;
-}>;
-
-function getContourPreset(
-  maskThreshold: number,
-  smoothness: number,
-): ContourPreset {
-  const preset = CONTOUR_PRESETS.find(
-    (item) =>
-      item.maskThreshold === maskThreshold && item.smoothness === smoothness,
-  );
-  return preset?.value ?? "custom";
-}
-
 function createCurlExample(
   model: SegmentationModel,
   outlinePx: number,
@@ -103,7 +45,6 @@ export function StickerStudio() {
   const [file, setFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [model, setModel] = useState<SegmentationModel>("u2netp");
-  const [contourPreset, setContourPreset] = useState<ContourPreset>("balanced");
   const [outlinePx, setOutlinePx] = useState(10);
   const [maskThreshold, setMaskThreshold] = useState(128);
   const [smoothness, setSmoothness] = useState(2);
@@ -165,36 +106,17 @@ export function StickerStudio() {
     resetResult();
   }
 
-  function applyContourPreset(nextPreset: Exclude<ContourPreset, "custom">) {
-    const preset = CONTOUR_PRESETS.find((item) => item.value === nextPreset);
-    if (!preset) {
-      return;
-    }
-
-    setContourPreset(preset.value);
-    setMaskThreshold(preset.maskThreshold);
-    setSmoothness(preset.smoothness);
-    setError(null);
-    resetResult();
-  }
-
   function handleMaskThresholdChange(nextValue: number) {
     setMaskThreshold(nextValue);
-    setContourPreset(getContourPreset(nextValue, smoothness));
     setError(null);
     resetResult();
   }
 
   function handleSmoothnessChange(nextValue: number) {
     setSmoothness(nextValue);
-    setContourPreset(getContourPreset(maskThreshold, nextValue));
     setError(null);
     resetResult();
   }
-
-  const activeContourPreset = CONTOUR_PRESETS.find(
-    (item) => item.value === contourPreset,
-  );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -416,44 +338,6 @@ export function StickerStudio() {
                             aggressively the final outline is rounded.
                           </p>
                         </div>
-                        <div className="rounded-full border border-[var(--line-soft)] bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-                          {contourPreset === "custom"
-                            ? "Custom"
-                            : activeContourPreset?.label}
-                        </div>
-                      </div>
-
-                      <div className="grid gap-3 lg:grid-cols-2">
-                        {CONTOUR_PRESETS.map((preset) => {
-                          const isActive = contourPreset === preset.value;
-                          return (
-                            <button
-                              key={preset.value}
-                              className={`rounded-[1.15rem] border px-4 py-4 text-left transition ${
-                                isActive
-                                  ? "border-[var(--ink-strong)] bg-[var(--ink-strong)] text-white shadow-[0_12px_30px_rgba(15,23,42,0.15)]"
-                                  : "border-[var(--line-soft)] bg-white text-[var(--ink-strong)] hover:border-[var(--ink-strong)]/25"
-                              }`}
-                              type="button"
-                              onClick={() => applyContourPreset(preset.value)}
-                            >
-                              <div className="text-sm font-semibold">
-                                {preset.label}
-                              </div>
-                              <div
-                                className={`mt-2 text-sm leading-6 ${isActive ? "text-slate-200" : "text-[var(--ink-muted)]"}`}
-                              >
-                                {preset.description}
-                              </div>
-                              <div
-                                className={`mt-3 text-xs font-semibold uppercase tracking-[0.18em] ${isActive ? "text-slate-300" : "text-[var(--ink-muted)]"}`}
-                              >
-                                Threshold {preset.maskThreshold} · Smoothing{" "}
-                                {preset.smoothness}
-                              </div>
-                            </button>
-                          );
-                        })}
                       </div>
 
                       <div className="grid gap-4 md:grid-cols-2">
