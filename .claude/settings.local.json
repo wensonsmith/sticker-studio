@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat -ano)",
+      "Bash(tasklist)",
+      "Bash(wmic process:*)",
+      "Bash(ps -p 6308 -o args=)",
+      "Bash(tasklist /v)",
+      "Bash(tasklist:*)",
+      "Bash(powershell.exe -Command \"Get-Process -Id 6308 | Select-Object Name, Path, CommandLine\")",
+      "Bash(powershell.exe -Command \"Get-Process -Id 6308 | Select-Object -ExpandProperty Parent | Select-Object Name, Id\")",
+      "Bash(powershell.exe -Command \"Get-CimInstance Win32_Process -Filter \\\\\"ProcessId=6308\\\\\" | Select-Object Name, CommandLine, WorkingSetSize\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
