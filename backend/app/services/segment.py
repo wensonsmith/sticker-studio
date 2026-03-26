@@ -56,11 +56,16 @@ class BaseSegmenter:
 
 
 class BiRefNetSegmenter(BaseSegmenter):
+    DEFAULT_INPUT_SIZE = (1024, 1024)
+    MEAN = (0.485, 0.456, 0.406)
+    STD = (0.229, 0.224, 0.225)
+
     def __init__(self, settings: Settings, model_name: str, model_dir: Path) -> None:
         super().__init__(settings, model_name, model_dir)
         self.processor = None
         self.input_name = None
         self.output_name = None
+        self.input_size = self.DEFAULT_INPUT_SIZE
 
     def load(self) -> None:
         if self.processor is not None and self.session is not None:
@@ -68,10 +73,41 @@ class BiRefNetSegmenter(BaseSegmenter):
 
         from transformers import AutoImageProcessor
 
-        self.processor = AutoImageProcessor.from_pretrained(self.model_dir)
         self.session = self._build_session()
         self.input_name = self.session.get_inputs()[0].name
         self.output_name = self.session.get_outputs()[0].name
+        self.input_size = self._resolve_input_size()
+
+        try:
+            self.processor = AutoImageProcessor.from_pretrained(self.model_dir)
+        except OSError:
+            self.processor = None
+
+    def _resolve_input_size(self) -> tuple[int, int]:
+        assert self.session is not None
+
+        input_shape = self.session.get_inputs()[0].shape
+        if len(input_shape) >= 4:
+            height = input_shape[2]
+            width = input_shape[3]
+            if isinstance(height, int) and isinstance(width, int):
+                return (width, height)
+
+        return self.DEFAULT_INPUT_SIZE
+
+    def _fallback_preprocess(self, image: Image.Image) -> dict[str, np.ndarray]:
+        assert self.input_name is not None
+
+        resized = image.convert("RGB").resize(self.input_size, Image.Resampling.LANCZOS)
+        image_array = np.asarray(resized, dtype=np.float32) / 255.0
+
+        normalized = np.empty_like(image_array, dtype=np.float32)
+        normalized[:, :, 0] = (image_array[:, :, 0] - self.MEAN[0]) / self.STD[0]
+        normalized[:, :, 1] = (image_array[:, :, 1] - self.MEAN[1]) / self.STD[1]
+        normalized[:, :, 2] = (image_array[:, :, 2] - self.MEAN[2]) / self.STD[2]
+
+        batched = normalized.transpose((2, 0, 1))[None, ...].astype(np.float32)
+        return {self.input_name: batched}
 
     def _build_feeds(self, processed: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
         assert self.input_name is not None
@@ -102,7 +138,11 @@ class BiRefNetSegmenter(BaseSegmenter):
         assert self.output_name is not None
 
         rgb_image = image.convert("RGB")
-        processed = self.processor(images=rgb_image, return_tensors="np")
+        processed = (
+            self.processor(images=rgb_image, return_tensors="np")
+            if self.processor is not None
+            else self._fallback_preprocess(rgb_image)
+        )
         outputs = self.session.run([self.output_name], self._build_feeds(processed))[0]
         logits = np.asarray(outputs).squeeze()
         if logits.ndim == 3:

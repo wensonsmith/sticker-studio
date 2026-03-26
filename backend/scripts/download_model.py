@@ -27,7 +27,7 @@ MODEL_DOWNLOADS = {
 MODEL_ALIASES = {"isnet": "isnet-general-use", "birefnet_lite": "birefnet-lite"}
 # HuggingFace repos for models not in MODEL_DOWNLOADS
 HUGGINGFACE_REPOS = {
-    "birefnet-lite": "ZhengPeng7/BiRefNet_lite",
+    "birefnet-lite": "onnx-community/BiRefNet_lite-ONNX",
 }
 DEFAULT_MODEL_DIR = Path("backend/.cache/models/u2netp")
 DEFAULT_MODEL_NAME = "u2netp"
