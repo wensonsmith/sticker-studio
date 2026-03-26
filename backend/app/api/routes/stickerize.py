@@ -34,6 +34,7 @@ async def healthz() -> JSONResponse:
                 "modelDir": str(model_dir),
                 "modelDirExists": model_dir.exists(),
                 "modelLoaded": model_loaded,
+                "allowPrivateRemoteHosts": settings.allow_private_remote_hosts,
                 "corsOrigins": settings.cors_origin_list,
             },
         },

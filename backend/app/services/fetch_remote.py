@@ -35,9 +35,11 @@ def _is_forbidden_ip(address: str) -> bool:
     )
 
 
-async def _validate_hostname(hostname: str) -> None:
+async def _validate_hostname(hostname: str, allow_private_remote_hosts: bool) -> None:
     normalized = hostname.strip().lower().rstrip(".")
-    if not normalized or normalized in BLOCKED_HOSTNAMES:
+    if not normalized:
+        raise bad_gateway("The requested host is not allowed.")
+    if normalized in BLOCKED_HOSTNAMES and not allow_private_remote_hosts:
         raise bad_gateway("The requested host is not allowed.")
 
     try:
@@ -50,7 +52,7 @@ async def _validate_hostname(hostname: str) -> None:
     if not addresses:
         raise bad_gateway("The remote host did not resolve to a routable address.")
 
-    if any(_is_forbidden_ip(address) for address in addresses):
+    if not allow_private_remote_hosts and any(_is_forbidden_ip(address) for address in addresses):
         raise bad_gateway("The remote host resolved to a blocked network address.")
 
 
@@ -69,7 +71,10 @@ async def fetch_remote_image(url: str, settings: Settings) -> FetchedImage:
     async with httpx.AsyncClient(follow_redirects=False, timeout=settings.fetch_timeout_seconds) as client:
         for _ in range(MAX_REDIRECTS + 1):
             parsed = urlparse(current_url)
-            await _validate_hostname(parsed.hostname or "")
+            await _validate_hostname(
+                parsed.hostname or "",
+                settings.allow_private_remote_hosts,
+            )
 
             try:
                 response = await client.get(

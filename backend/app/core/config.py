@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     fetch_timeout_ms: int = Field(default=10_000, alias="STICKIFY_FETCH_TIMEOUT_MS")
     model_dir: Path = Field(default=Path("backend/.cache/models/u2netp"), alias="STICKIFY_MODEL_DIR")
     model_name: str = Field(default="u2netp", alias="STICKIFY_MODEL_NAME")
+    allow_private_remote_hosts: bool = Field(default=False, alias="STICKIFY_ALLOW_PRIVATE_REMOTE_HOSTS")
     cors_origins: str = Field(default="*", alias="STICKIFY_CORS_ORIGINS")
     rate_limit_per_minute: int = Field(default=30, alias="STICKIFY_RATE_LIMIT_PER_MINUTE")
     default_outline_px: int = Field(default=10, alias="STICKIFY_DEFAULT_OUTLINE_PX")

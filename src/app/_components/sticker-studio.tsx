@@ -326,8 +326,8 @@ export function StickerStudio() {
                         }}
                       />
                       <span className="text-sm text-[var(--ink-muted)]">
-                        Only public https URLs are accepted. Localhost and
-                        private networks are blocked by the API.
+                        HTTPS URLs are accepted. The backend may block some
+                        hosts based on its network policy.
                       </span>
                     </label>
                   )}
