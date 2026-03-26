@@ -27,6 +27,57 @@ const MODEL_OPTIONS = [
   { value: "isnet-general-use", label: "ISNet (Cleaner)" },
   { value: "birefnet-lite", label: "BiRefNet Lite (Balanced)" },
 ] as const satisfies ReadonlyArray<{ value: SegmentationModel; label: string }>;
+const API_PARAMETER_ROWS = [
+  {
+    name: "file",
+    required: "Conditional",
+    values: "PNG, JPEG, WebP",
+    note: "Used in multipart/form-data uploads.",
+  },
+  {
+    name: "imageUrl",
+    required: "Conditional",
+    values: "Public https URL",
+    note: "Used in JSON requests.",
+  },
+  {
+    name: "model",
+    required: "No",
+    values: "u2netp, isnet-general-use, birefnet-lite",
+    note: "Segmentation model.",
+  },
+  {
+    name: "outlinePx",
+    required: "No",
+    values: "UI: 0, 6, 10, 14, 18, 24 | API: 0-48",
+    note: "White outline thickness.",
+  },
+  {
+    name: "size",
+    required: "No",
+    values: "UI: 1000 | API: 256-1024",
+    note: "Output width and height.",
+  },
+  {
+    name: "format",
+    required: "No",
+    values: "png, webp",
+    note: "UI currently sends png.",
+  },
+  {
+    name: "maskThreshold",
+    required: "No",
+    values: "UI: 96, 112, 128, 144, 160 | API: 1-254",
+    note: "Foreground cutoff.",
+  },
+  {
+    name: "smoothness",
+    required: "No",
+    values: "0, 1, 2, 3, 4",
+    note: "Contour smoothing level.",
+  },
+] as const;
+
 function createCurlExample(
   model: SegmentationModel,
   outlinePx: number,
@@ -494,8 +545,13 @@ export function StickerStudio() {
         <div className="flex flex-col gap-6 lg:flex-row">
           <div className="flex-1 min-w-0">
             <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-[var(--paper)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--ink-muted)]">
-                API example
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--ink-muted)]">
+                  API example
+                </div>
+                <code className="text-sm text-[var(--ink-muted)]">
+                  POST /v1/stickerize
+                </code>
               </div>
               <pre className="mt-4 overflow-x-auto rounded-[1.2rem] bg-[var(--ink-strong)] p-4 text-sm leading-7 text-slate-100">
                 <code>
@@ -507,23 +563,32 @@ export function StickerStudio() {
                   )}
                 </code>
               </pre>
-              <div className="mt-5 flex flex-col gap-2 text-sm leading-6 text-[var(--ink-muted)]">
-                <p>
-                  <code>POST /v1/stickerize</code> accepts either{" "}
-                  <code>multipart/form-data</code> with a <code>file</code>{" "}
-                  field or JSON with an <code>imageUrl</code> field.
-                </p>
-                <p>
-                  Public options currently exposed in the UI are{" "}
-                  <code>model</code> and <code>outlinePx</code>. The frontend
-                  sends fixed values <code>size=1000</code> and{" "}
-                  <code>format=png</code>.
-                </p>
-                <p>
-                  Advanced controls map directly to <code>maskThreshold</code>{" "}
-                  and <code>smoothness</code>. Successful responses return PNG
-                  image bytes.
-                </p>
+              <div className="mt-5 overflow-x-auto rounded-[1.2rem] border border-[var(--line-soft)] bg-white/80">
+                <table className="min-w-full border-collapse text-left text-sm text-[var(--ink-muted)]">
+                  <thead className="bg-[var(--paper)] text-xs uppercase tracking-[0.18em] text-[var(--ink-strong)]">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Parameter</th>
+                      <th className="px-4 py-3 font-semibold">Required</th>
+                      <th className="px-4 py-3 font-semibold">Available values</th>
+                      <th className="px-4 py-3 font-semibold">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {API_PARAMETER_ROWS.map((row) => (
+                      <tr
+                        key={row.name}
+                        className="border-t border-[var(--line-soft)] align-top"
+                      >
+                        <td className="px-4 py-3 font-mono text-[var(--ink-strong)]">
+                          {row.name}
+                        </td>
+                        <td className="px-4 py-3">{row.required}</td>
+                        <td className="px-4 py-3">{row.values}</td>
+                        <td className="px-4 py-3">{row.note}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
