@@ -10,6 +10,8 @@ from PIL import Image, ImageFilter
 from backend.app.core.errors import unprocessable_entity
 
 PADDING_RATIO = 0.05
+SHADOW_COLOR = (36, 42, 56)
+SHADOW_OPACITY = 58
 
 
 @dataclass(slots=True)
@@ -25,6 +27,25 @@ def _bbox_from_mask(mask: np.ndarray) -> tuple[int, int, int, int]:
         raise unprocessable_entity("The final contour mask was empty.")
     x, y, width, height = cv2.boundingRect(points)
     return x, y, width, height
+
+
+def _build_shadow_layer(
+    alpha_mask: Image.Image,
+    target_width: int,
+    target_height: int,
+    options: ComposeOptions,
+) -> tuple[Image.Image, tuple[int, int]]:
+    shadow_alpha = alpha_mask.resize((target_width, target_height), Image.Resampling.LANCZOS)
+    blur_radius = max(1.6, options.outline_px * 0.35 + options.size * 0.0032)
+    offset_x = max(1, int(round(options.size * 0.0035)))
+    offset_y = max(2, int(round(options.size * 0.0085)))
+
+    shadow_alpha = shadow_alpha.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+    shadow_alpha = shadow_alpha.point(lambda value: int(value * (SHADOW_OPACITY / 255.0)))
+
+    shadow_layer = Image.new("RGBA", (target_width, target_height), (*SHADOW_COLOR, 0))
+    shadow_layer.putalpha(shadow_alpha)
+    return shadow_layer, (offset_x, offset_y)
 
 
 def compose_sticker(source_image: Image.Image, mask: np.ndarray, options: ComposeOptions) -> bytes:
@@ -60,6 +81,17 @@ def compose_sticker(source_image: Image.Image, mask: np.ndarray, options: Compos
     foreground_image.putalpha(foreground_alpha)
 
     canvas = Image.new("RGBA", (options.size, options.size), (0, 0, 0, 0))
+    shadow_layer, shadow_offset = _build_shadow_layer(
+        Image.fromarray(combined_mask[y:y + height, x:x + width], mode="L"),
+        target_width,
+        target_height,
+        options,
+    )
+    canvas.alpha_composite(
+        shadow_layer,
+        (offset_x + shadow_offset[0], offset_y + shadow_offset[1]),
+    )
+
     if options.outline_px > 0:
         outline_alpha = cropped_outline_mask.resize((target_width, target_height), Image.Resampling.LANCZOS)
         outline_alpha = outline_alpha.filter(ImageFilter.GaussianBlur(radius=0.8))
