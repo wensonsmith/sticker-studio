@@ -5,7 +5,12 @@ from backend.app.core.errors import bad_request, payload_too_large, unsupported_
 
 ALLOWED_IMAGE_MIME_TYPES = {"image/png", "image/jpeg", "image/webp"}
 ALLOWED_OUTPUT_FORMATS = {"png", "webp"}
-MODEL_ALIASES = {"isnet": "isnet-general-use"}
+MODEL_ALIASES = {
+    "isnet": "isnet-general-use",
+    "birefnet_lite": "birefnet-lite",
+    "onnx-community/birefnet_lite-onnx": "birefnet-lite",
+    "onnx-community/birefnet-lite-onnx": "birefnet-lite",
+}
 ALLOWED_MODELS = {"u2netp", "isnet-general-use", "u2net", "birefnet-lite", *MODEL_ALIASES.keys()}
 MAX_OUTPUT_SIZE = 1024
 MIN_OUTPUT_SIZE = 256
@@ -36,9 +41,16 @@ def _parse_int(raw_value: object, field_name: str, default: int) -> int:
         raise bad_request(f"{field_name} must be an integer.") from error
 
 
-def _normalize_common_fields(payload: dict[str, object], settings: Settings) -> tuple[str, int, int, str, int, int]:
-    model_name = str(payload.get("model") or settings.model_name).strip().lower()
+def _normalize_model_name(raw_value: object, settings: Settings) -> str:
+    model_name = str(raw_value or settings.model_name).strip().lower()
     model_name = MODEL_ALIASES.get(model_name, model_name)
+    if model_name.endswith("/birefnet_lite-onnx") or model_name.endswith("/birefnet-lite-onnx"):
+        return "birefnet-lite"
+    return model_name
+
+
+def _normalize_common_fields(payload: dict[str, object], settings: Settings) -> tuple[str, int, int, str, int, int]:
+    model_name = _normalize_model_name(payload.get("model"), settings)
     outline_px = _parse_int(payload.get("outlinePx"), "outlinePx", settings.default_outline_px)
     size = _parse_int(payload.get("size"), "size", settings.default_size)
     mask_threshold = _parse_int(payload.get("maskThreshold"), "maskThreshold", settings.default_mask_threshold)
