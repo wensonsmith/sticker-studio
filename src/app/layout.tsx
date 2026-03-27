@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Stickify Studio",
-  description: "Upload an object photo or paste a URL to generate a contour-first sticker through the FastAPI backend.",
+  title: "Sticker Studio",
+  description:
+    "Upload a photo or paste an image URL to turn objects into clean, downloadable stickers with adjustable edges.",
 };
 
 export default function RootLayout({

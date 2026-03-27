@@ -7,7 +7,7 @@ import { useEffect, useState, useTransition } from "react";
 
 type SourceMode = "upload" | "url";
 type OutputFormat = "png" | "webp";
-type SegmentationModel = "u2netp" | "isnet-general-use" | "birefnet-lite";
+type SegmentationModel = "u2netp" | "isnet-general-use";
 type ResultState = {
   url: string;
   filename: string;
@@ -25,7 +25,6 @@ const SMOOTHNESS_OPTIONS = [0, 1, 2, 3, 4] as const;
 const MODEL_OPTIONS = [
   { value: "u2netp", label: "U2NetP (Fast)" },
   { value: "isnet-general-use", label: "ISNet (Cleaner)" },
-  { value: "birefnet-lite", label: "BiRefNet Lite (Balanced)" },
 ] as const satisfies ReadonlyArray<{ value: SegmentationModel; label: string }>;
 const API_PARAMETER_ROWS = [
   {
@@ -43,7 +42,7 @@ const API_PARAMETER_ROWS = [
   {
     name: "model",
     required: "No",
-    values: "u2netp, isnet-general-use, birefnet-lite",
+    values: "u2netp, isnet-general-use",
     note: "Segmentation model.",
   },
   {
@@ -90,6 +89,32 @@ function createCurlExample(
     `  -d '{"imageUrl":"https://example.com/product.jpg","model":"${model}","outlinePx":${outlinePx},"size":${FIXED_OUTPUT_SIZE},"format":"${FIXED_OUTPUT_FORMAT}","maskThreshold":${maskThreshold},"smoothness":${smoothness}}' \\`,
     "  --output sticker.png",
   ].join("\n");
+}
+
+function XIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      fill="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path d="M18.901 1.153H22.58l-8.036 9.183L24 22.847h-7.406l-5.8-7.584-6.639 7.584H.473l8.595-9.824L0 1.153h7.594l5.243 6.932 6.064-6.932Zm-1.291 19.49h2.039L6.486 3.25H4.298L17.61 20.643Z" />
+    </svg>
+  );
+}
+
+function GitHubIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      fill="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path d="M12 .5a12 12 0 0 0-3.793 23.385c.6.111.82-.26.82-.577v-2.234c-3.338.726-4.042-1.416-4.042-1.416-.546-1.388-1.334-1.757-1.334-1.757-1.09-.745.083-.73.083-.73 1.205.085 1.839 1.237 1.839 1.237 1.07 1.833 2.807 1.304 3.492.997.108-.775.418-1.304.762-1.604-2.665-.303-5.467-1.333-5.467-5.93 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.323 3.301 1.23a11.45 11.45 0 0 1 6.008 0c2.291-1.553 3.297-1.23 3.297-1.23.654 1.652.243 2.873.119 3.176.77.84 1.234 1.911 1.234 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.814 1.103.814 2.222v3.293c0 .319.216.694.825.576A12 12 0 0 0 12 .5Z" />
+    </svg>
+  );
 }
 
 export function StickerStudio() {
@@ -257,17 +282,16 @@ export function StickerStudio() {
             {/* 左侧标题 */}
             <div className="flex-1 space-y-6">
               <div className="inline-flex items-center rounded-full border border-[var(--line-soft)] bg-[var(--paper)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--ink-muted)]">
-                Stickify Studio
+                Sticker Studio
               </div>
               <div className="space-y-4">
-                <h1 className="max-w-3xl text-balance font-sans text-4xl font-semibold leading-[0.95] sm:text-5xl lg:text-6xl">
-                  [v0.9] Find the object contour first, then turn it into a
-                  clean sticker.
+                <h1 className="max-w-4xl text-balance font-sans text-5xl font-semibold leading-[0.92] sm:text-6xl lg:text-7xl">
+                  Turn product shots and object photos into clean stickers.
                 </h1>
                 <p className="max-w-2xl text-pretty text-base leading-7 text-[var(--ink-muted)] sm:text-lg">
-                  The Next.js interface stays lightweight while the FastAPI
-                  backend handles remote fetch safety, contour extraction,
-                  smoothing, and transparent sticker export.
+                  Upload a file or paste an image URL, fine-tune the cut, and
+                  export a polished sticker with a transparent background in a
+                  few clicks.
                 </p>
               </div>
             </div>
@@ -593,6 +617,83 @@ export function StickerStudio() {
             </div>
           </div>
         </div>
+
+        <footer className="rounded-[1.75rem] border border-white/50 bg-white/65 p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--ink-muted)]">
+                Links
+              </div>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--ink-muted)]">
+                Find more writing, updates, and source code around Sticker
+                Studio.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            <a
+              className="group flex items-center gap-4 rounded-[1.25rem] border border-[var(--line-soft)] bg-white/80 px-4 py-4 transition hover:-translate-y-0.5 hover:border-[var(--ink-strong)]/18 hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)]"
+              href="https://middlefun.com"
+              rel="noreferrer"
+              target="_blank"
+            >
+              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white ring-1 ring-[var(--line-soft)]">
+                <img
+                  alt="MiddleFun logo"
+                  className="h-7 w-auto"
+                  src="https://www.middlefun.com/middle-fun-logo-narrow.png"
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-[var(--ink-strong)]">
+                  Knowledge Community
+                </div>
+                <div className="mt-1 text-sm text-[var(--ink-muted)]">
+                  MiddleFun
+                </div>
+              </div>
+            </a>
+
+            <a
+              className="group flex items-center gap-4 rounded-[1.25rem] border border-[var(--line-soft)] bg-white/80 px-4 py-4 transition hover:-translate-y-0.5 hover:border-[var(--ink-strong)]/18 hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)]"
+              href="https://x.com/wensonsmith?s=21"
+              rel="noreferrer"
+              target="_blank"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--ink-strong)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]">
+                <XIcon />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-[var(--ink-strong)]">
+                  Twitter
+                </div>
+                <div className="mt-1 text-sm text-[var(--ink-muted)]">
+                  Wenson
+                </div>
+              </div>
+            </a>
+
+            <a
+              className="group flex items-center gap-4 rounded-[1.25rem] border border-[var(--line-soft)] bg-white/80 px-4 py-4 transition hover:-translate-y-0.5 hover:border-[var(--ink-strong)]/18 hover:shadow-[0_16px_36px_rgba(15,23,42,0.08)]"
+              href="https://github.com/wensonsmith/sticker-studio"
+              rel="noreferrer"
+              target="_blank"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[var(--ink-strong)] ring-1 ring-[var(--line-soft)]">
+                <GitHubIcon />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-[var(--ink-strong)]">
+                  GitHub
+                </div>
+                <div className="mt-1 text-sm text-[var(--ink-muted)]">
+                  StickerStudio
+                </div>
+              </div>
+            </a>
+          </div>
+        </footer>
       </div>
     </div>
   );
