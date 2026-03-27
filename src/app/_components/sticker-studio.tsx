@@ -300,16 +300,16 @@ export function StickerStudio() {
             <div className="flex-1">
               <div className="rounded-[1.75rem] border border-[var(--line-soft)] bg-white/75 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
                 <form className="grid gap-5" onSubmit={handleSubmit}>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="inline-flex w-full max-w-fit rounded-full border border-[var(--line-soft)] bg-[var(--paper)]/90 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
                     <button
-                      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${mode === "upload" ? "bg-[var(--ink-strong)] text-white" : "border border-[var(--line-soft)] bg-[var(--paper)] text-[var(--ink-muted)] hover:border-[var(--ink-strong)]/20"}`}
+                      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${mode === "upload" ? "bg-white text-[var(--ink-strong)] shadow-[0_8px_18px_rgba(15,23,42,0.08)]" : "bg-transparent text-[var(--ink-muted)] hover:text-[var(--ink-strong)]"}`}
                       type="button"
                       onClick={() => handleModeChange("upload")}
                     >
                       Upload a file
                     </button>
                     <button
-                      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${mode === "url" ? "bg-[var(--ink-strong)] text-white" : "border border-[var(--line-soft)] bg-[var(--paper)] text-[var(--ink-muted)] hover:border-[var(--ink-strong)]/20"}`}
+                      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${mode === "url" ? "bg-white text-[var(--ink-strong)] shadow-[0_8px_18px_rgba(15,23,42,0.08)]" : "bg-transparent text-[var(--ink-muted)] hover:text-[var(--ink-strong)]"}`}
                       type="button"
                       onClick={() => handleModeChange("url")}
                     >
